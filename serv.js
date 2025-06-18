@@ -274,7 +274,7 @@ async function pushMessage(content, userId, feedId, time) {
 		const last = await getSQL('SELECT MAX(day) as maxDay FROM crushDrop_releases WHERE feedId = $1', feedId);
 		const newDay = last && last.maxDay !== null ? last.maxDay + 1 : 0;
 		await runSQL(
-			'INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, 1)',
+			'INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, TRUE)',
 			feedId,
 			newDay
 		);
@@ -290,7 +290,7 @@ async function pushMessage(content, userId, feedId, time) {
 		content,
 		time
 	);
-	await runSQL('UPDATE crushDrop_releases SET isEmpty = 0 WHERE id = $1', release.id);
+	await runSQL('UPDATE crushDrop_releases SET isEmpty = FALSE WHERE id = $1', release.id);
 }
 
 
@@ -474,7 +474,7 @@ app.post('/api/feed/:feedId/release/latest', async (req, res) => {
 		// Met à jour releaseDate
 		await runSQL('UPDATE crushDrop_releases SET releaseDate = $1 WHERE id = $2', Date.now(), latest.id);
 		// Crée une nouvelle release (day+1, releaseDate=0, isEmpty=1)
-		await runSQL('INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, 1)', feedId, latest.day + 1);
+		await runSQL('INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, TRUE)', feedId, latest.day + 1);
 		// Met à jour msgCount
 		const msgCountRow = await getSQL('SELECT COUNT(m.id) as count FROM crushDrop_messages m JOIN crushDrop_releases r ON m.releaseId = r.id WHERE r.feedId = $1 AND m.validated = 1', feedId);
 		await runSQL('UPDATE crushDrop_feeds SET msgCount = $1 WHERE id = $2', msgCountRow.count, feedId);
