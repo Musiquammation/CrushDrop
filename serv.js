@@ -467,8 +467,8 @@ app.post('/api/feed/:feedId/release', async (req, res) => {
 app.post('/api/feed/:feedId/release/latest', async (req, res) => {
 	const feedId = req.params.feedId;
 	try {
-		// Récupère la release la plus récente
-		const latest = await getSQL('SELECT id, day, isEmpty FROM crushDrop_releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1', feedId);
+		// Récupère la release la plus récente non vide
+		const latest = await getSQL('SELECT id, day, isEmpty FROM crushDrop_releases WHERE feedId = $1 AND releaseDate = 0 AND isEmpty = FALSE ORDER BY day DESC LIMIT 1', feedId);
 		if (!latest) return res.status(404).json({ error: 'No release found' });
 		if (latest.isEmpty) return res.status(400).json({ error: 'Cannot release an empty release' });
 		// Vérifie que tous les messages sont validés
