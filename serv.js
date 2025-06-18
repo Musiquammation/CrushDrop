@@ -271,8 +271,10 @@ async function pushMessage(content, userId, feedId, time) {
 	);
 	if (!release) {
 		// Si aucune release ouverte, on en crée une nouvelle (cas rare)
-		const last = await getSQL('SELECT MAX(day) as maxDay FROM crushDrop_releases WHERE feedId = $1', feedId);
-		const newDay = last && last.maxDay !== null ? last.maxDay + 1 : 0;
+		const newDay = last && typeof last.maxDay === 'number' && !isNaN(last.maxDay)
+			? last.maxDay + 1
+			: 0;
+			
 		await runSQL(
 			'INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, TRUE)',
 			feedId,
