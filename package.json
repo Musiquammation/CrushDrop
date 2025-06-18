@@ -17,6 +17,7 @@
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
+    "pg": "^8.16.1",
     "sqlite3": "^5.1.7"
   }
 }

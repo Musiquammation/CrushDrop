@@ -65,7 +65,7 @@ async function initDb() {
 		await client.query('BEGIN');
 
 		await client.query(`
-			CREATE TABLE IF NOT EXISTS users (
+			CREATE TABLE IF NOT EXISTS crushDrop_users (
 				id TEXT PRIMARY KEY,
 				name TEXT NOT NULL,
 				email TEXT UNIQUE NOT NULL,
@@ -74,19 +74,19 @@ async function initDb() {
 		`);
 
 		await client.query(`
-			CREATE TABLE IF NOT EXISTS feeds (
+			CREATE TABLE IF NOT EXISTS crushDrop_feeds (
 				id TEXT PRIMARY KEY,
 				name TEXT NOT NULL,
 				creationDate BIGINT NOT NULL,
-				ownerId TEXT NOT NULL REFERENCES users(id),
+				ownerId TEXT NOT NULL REFERENCES crushDrop_users(id),
 				msgCount INTEGER NOT NULL DEFAULT 0
 			);
 		`);
 
 		await client.query(`
-			CREATE TABLE IF NOT EXISTS releases (
+			CREATE TABLE IF NOT EXISTS crushDrop_releases (
 				id SERIAL PRIMARY KEY,
-				feedId TEXT NOT NULL REFERENCES feeds(id),
+				feedId TEXT NOT NULL REFERENCES crushDrop_feeds(id),
 				day INTEGER NOT NULL,
 				releaseDate BIGINT NOT NULL DEFAULT 0,
 				isEmpty BOOLEAN NOT NULL DEFAULT TRUE,
@@ -95,10 +95,10 @@ async function initDb() {
 		`);
 
 		await client.query(`
-			CREATE TABLE IF NOT EXISTS messages (
+			CREATE TABLE IF NOT EXISTS crushDrop_messages (
 				id SERIAL PRIMARY KEY,
-				releaseId INTEGER NOT NULL REFERENCES releases(id),
-				userId TEXT NOT NULL REFERENCES users(id),
+				releaseId INTEGER NOT NULL REFERENCES crushDrop_releases(id),
+				userId TEXT NOT NULL REFERENCES crushDrop_users(id),
 				content TEXT NOT NULL,
 				createdAt BIGINT NOT NULL,
 				likes INTEGER DEFAULT 0,
@@ -108,29 +108,29 @@ async function initDb() {
 		`);
 
 		await client.query(`
-			CREATE TABLE IF NOT EXISTS userFeeds (
-				userId TEXT NOT NULL REFERENCES users(id),
-				feedId TEXT NOT NULL REFERENCES feeds(id),
+			CREATE TABLE IF NOT EXISTS crushDrop_userFeeds (
+				userId TEXT NOT NULL REFERENCES crushDrop_users(id),
+				feedId TEXT NOT NULL REFERENCES crushDrop_feeds(id),
 				PRIMARY KEY (userId, feedId)
 			);
 		`);
 
 		await client.query(`
-			CREATE TABLE IF NOT EXISTS comments (
+			CREATE TABLE IF NOT EXISTS crushDrop_comments (
 				id SERIAL PRIMARY KEY,
-				messageId INTEGER NOT NULL REFERENCES messages(id),
-				userId TEXT NOT NULL REFERENCES users(id),
+				messageId INTEGER NOT NULL REFERENCES crushDrop_messages(id),
+				userId TEXT NOT NULL REFERENCES crushDrop_users(id),
 				content TEXT NOT NULL,
 				createdAt BIGINT NOT NULL
 			);
 		`);
 
 		// Indexes
-		await client.query(`CREATE INDEX IF NOT EXISTS messageIndex ON messages (releaseId, createdAt DESC);`);
-		await client.query(`CREATE INDEX IF NOT EXISTS releaseFeedDayIndex ON releases (feedId, day);`);
-		await client.query(`CREATE INDEX IF NOT EXISTS messageUserIndex ON messages (userId);`);
-		await client.query(`CREATE INDEX IF NOT EXISTS userFeedIndex ON userFeeds(feedId);`);
-		await client.query(`CREATE INDEX IF NOT EXISTS commentMessageIndex ON comments (messageId, createdAt DESC);`);
+		await client.query(`CREATE INDEX IF NOT EXISTS messageIndex ON crushDrop_messages (releaseId, createdAt DESC);`);
+		await client.query(`CREATE INDEX IF NOT EXISTS releaseFeedDayIndex ON crushDrop_releases (feedId, day);`);
+		await client.query(`CREATE INDEX IF NOT EXISTS messageUserIndex ON crushDrop_messages (userId);`);
+		await client.query(`CREATE INDEX IF NOT EXISTS userFeedIndex ON crushDrop_userFeeds(feedId);`);
+		await client.query(`CREATE INDEX IF NOT EXISTS commentMessageIndex ON crushDrop_comments (messageId, createdAt DESC);`);
 
 		await client.query('COMMIT');
 		console.log('PostgreSQL tables initialized.');
@@ -168,7 +168,7 @@ app.post('/signin', async (req, res) => {
 	try {
 		const hash = await bcrypt.hash(password, 10);
 		await runSQL(
-			'INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4)',
+			'INSERT INTO crushDrop_users (id, name, email, password) VALUES ($1, $2, $3, $4)',
 			id, name, email, hash
 		);
 		req.session.userId = id;
@@ -190,7 +190,7 @@ app.post('/signin', async (req, res) => {
 app.post('/login', async (req, res) => {
 	const { identifier, password } = req.body;
 	try {
-		const user = await getSQL('SELECT * FROM users WHERE email = $1 OR id = $2', identifier, identifier);
+		const user = await getSQL('SELECT * FROM crushDrop_users WHERE email = $1 OR id = $2', identifier, identifier);
 		if (!user) {
 			return res.status(401).send('Invalid credentials');
 		}
@@ -223,7 +223,7 @@ app.post('/auth/createFeed', async (req, res) => {
 	}
 
 	try {
-		const existing = await getSQL('SELECT * FROM feeds WHERE id = $1', id);
+		const existing = await getSQL('SELECT * FROM crushDrop_feeds WHERE id = $1', id);
 		if (existing) {
 			res.status(400).send('id already exists');
 			return;
@@ -232,7 +232,7 @@ app.post('/auth/createFeed', async (req, res) => {
 		const now = Date.now();
 
 		await runSQL(
-			'INSERT INTO feeds (id, name, creationDate, ownerId) VALUES ($1, $2, $3, $4)',
+			'INSERT INTO crushDrop_feeds (id, name, creationDate, ownerId) VALUES ($1, $2, $3, $4)',
 			id, name, now, ownerId
 		);
 		// Ajout au cache des feeds récents
@@ -267,31 +267,31 @@ app.post('/auth/createFeed', async (req, res) => {
 async function pushMessage(content, userId, feedId, time) {
 	// On insère toujours dans la release ouverte (releaseDate = 0)
 	let release = await getSQL(
-		'SELECT id FROM releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1',
+		'SELECT id FROM crushDrop_releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1',
 		feedId
 	);
 	if (!release) {
 		// Si aucune release ouverte, on en crée une nouvelle (cas rare)
-		const last = await getSQL('SELECT MAX(day) as maxDay FROM releases WHERE feedId = $1', feedId);
+		const last = await getSQL('SELECT MAX(day) as maxDay FROM crushDrop_releases WHERE feedId = $1', feedId);
 		const newDay = last && last.maxDay !== null ? last.maxDay + 1 : 0;
 		await runSQL(
-			'INSERT INTO releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, 1)',
+			'INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, 1)',
 			feedId,
 			newDay
 		);
 		release = await getSQL(
-			'SELECT id FROM releases WHERE feedId = $1 AND day = $2',
+			'SELECT id FROM crushDrop_releases WHERE feedId = $1 AND day = $2',
 			feedId, newDay
 		);
 	}
 	await runSQL(
-		`INSERT INTO messages (releaseId, userId, content, createdAt) VALUES ($1, $2, $3, $4)`,
+		`INSERT INTO crushDrop_messages (releaseId, userId, content, createdAt) VALUES ($1, $2, $3, $4)`,
 		release.id,
 		userId,
 		content,
 		time
 	);
-	await runSQL('UPDATE releases SET isEmpty = 0 WHERE id = $1', release.id);
+	await runSQL('UPDATE crushDrop_releases SET isEmpty = 0 WHERE id = $1', release.id);
 }
 
 
@@ -321,7 +321,7 @@ app.get('/api/feed/:feedId/releases', async (req, res) => {
   try {
     // Récupère les releases
     const releasesResult = await pool.query(
-      'SELECT * FROM releases WHERE feedId = $1 ORDER BY day DESC LIMIT $2 OFFSET $3',
+      'SELECT * FROM crushDrop_releases WHERE feedId = $1 ORDER BY day DESC LIMIT $2 OFFSET $3',
       [feedId, limit, offset]
     );
     const releases = releasesResult.rows;
@@ -329,7 +329,7 @@ app.get('/api/feed/:feedId/releases', async (req, res) => {
     // Pour chaque release, récupère les messages
     await Promise.all(releases.map(async (release) => {
       const messagesResult = await pool.query(
-        'SELECT id, content, createdAt, userId FROM messages WHERE releaseId = $1 AND validated ORDER BY createdAt ASC',
+        'SELECT id, content, createdAt, userId FROM crushDrop_messages WHERE releaseId = $1 AND validated ORDER BY createdAt ASC',
         [release.id]
       );
       const messages = messagesResult.rows;
@@ -338,8 +338,8 @@ app.get('/api/feed/:feedId/releases', async (req, res) => {
       await Promise.all(messages.map(async (msg) => {
         const commentsResult = await pool.query(
           `SELECT c.id, c.userId, u.name, c.content, c.createdAt
-           FROM comments c
-           JOIN users u ON c.userId = u.id
+           FROM crushDrop_comments c
+           JOIN crushDrop_users u ON c.userId = u.id
            WHERE c.messageId = $1
            ORDER BY c.createdAt ASC`,
           [msg.id]
@@ -362,7 +362,7 @@ app.get('/api/feed/:feedId/releases', async (req, res) => {
 app.get('/api/feed/:feedId/creationDate', async (req, res) => {
 	const feedId = req.params.feedId;
 	try {
-		const feed = await getSQL('SELECT creationDate FROM feeds WHERE id = $1', feedId);
+		const feed = await getSQL('SELECT creationDate FROM crushDrop_feeds WHERE id = $1', feedId);
 		if (!feed) return res.status(404).json({ error: 'Feed not found' });
 		res.json({ creationDate: feed.creationDate });
 	} catch (err) {
@@ -374,7 +374,7 @@ app.get('/api/feed/:feedId/creationDate', async (req, res) => {
 app.get('/auth/api/feed/:feedId/info', async (req, res) => {
 	const feedId = req.params.feedId;
 	try {
-		const feed = await getSQL('SELECT id, name FROM feeds WHERE id = $1', feedId);
+		const feed = await getSQL('SELECT id, name FROM crushDrop_feeds WHERE id = $1', feedId);
 		if (!feed) return res.status(404).json({ error: 'Feed not found' });
 		res.json(feed);
 	} catch (err) {
@@ -388,8 +388,8 @@ app.get('/auth/api/feed/:feedId/messages', async (req, res) => {
 	try {
 		const messagesResult = await pool.query(
 			`SELECT m.id, m.userId, m.content, m.createdAt, m.validated
-			 FROM messages m
-			 JOIN releases r ON m.releaseId = r.id
+			 FROM crushDrop_messages m
+			 JOIN crushDrop_releases r ON m.releaseId = r.id
 			 WHERE r.feedId = $1
 			 ORDER BY m.createdAt DESC`,
 			[feedId]
@@ -405,9 +405,9 @@ app.post('/auth/api/message/:msgId/validate', async (req, res) => {
 	const msgId = req.params.msgId;
 	const { validated } = req.body;
 	try {
-		const rel = await getSQL('SELECT r.releaseDate FROM releases r JOIN messages m ON m.releaseId = r.id WHERE m.id = $1', msgId);
+		const rel = await getSQL('SELECT r.releaseDate FROM crushDrop_releases r JOIN crushDrop_messages m ON m.releaseId = r.id WHERE m.id = $1', msgId);
 		if (rel && rel.releaseDate && rel.releaseDate > 0) return res.status(403).json({ error: 'Cannot modify a released message' });
-		await runSQL('UPDATE messages SET validated = $1 WHERE id = $2', validated ? 1 : 0, msgId);
+		await runSQL('UPDATE crushDrop_messages SET validated = $1 WHERE id = $2', validated ? 1 : 0, msgId);
 		res.sendStatus(200);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -418,9 +418,9 @@ app.post('/auth/api/message/:msgId/validate', async (req, res) => {
 app.delete('/auth/api/message/:msgId/delete', async (req, res) => {
 	const msgId = req.params.msgId;
 	try {
-		const rel = await getSQL('SELECT r.releaseDate FROM releases r JOIN messages m ON m.releaseId = r.id WHERE m.id = $1', msgId);
+		const rel = await getSQL('SELECT r.releaseDate FROM crushDrop_releases r JOIN crushDrop_messages m ON m.releaseId = r.id WHERE m.id = $1', msgId);
 		if (rel && rel.releaseDate && rel.releaseDate > 0) return res.status(403).json({ error: 'Cannot delete a released message' });
-		await runSQL('DELETE FROM messages WHERE id = $1', msgId);
+		await runSQL('DELETE FROM crushDrop_messages WHERE id = $1', msgId);
 		res.sendStatus(200);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -430,7 +430,7 @@ app.delete('/auth/api/message/:msgId/delete', async (req, res) => {
 app.get('/api/getFeedName/:feedId', async (req, res) => {
 	const feedId = req.params.feedId;
 	try {
-		const name = await getSQL(`SELECT name FROM feeds WHERE id=$1`, feedId);
+		const name = await getSQL(`SELECT name FROM crushDrop_feeds WHERE id=$1`, feedId);
 		res.json(name);
 	} catch (err) {
 		res.status(400).json({ error: err.message });
@@ -442,7 +442,7 @@ app.get('/api/getFeedName/:feedId', async (req, res) => {
 app.get('/api/feed/:feedId/maxDay', async (req, res) => {
 	const feedId = req.params.feedId;
 	try {
-		const row = await getSQL('SELECT MAX(day) as maxDay FROM releases WHERE feedId = $1', feedId);
+		const row = await getSQL('SELECT MAX(day) as maxDay FROM crushDrop_releases WHERE feedId = $1', feedId);
 		res.json({ maxDay: row && row.maxDay !== null ? row.maxDay : -1 });
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -454,7 +454,7 @@ app.post('/api/feed/:feedId/release', async (req, res) => {
 	const feedId = req.params.feedId;
 	const { day } = req.body;
 	try {
-		await runSQL('INSERT INTO releases (feedId, day, releaseDate) VALUES ($1, $2, 0)', feedId, day);
+		await runSQL('INSERT INTO crushDrop_releases (feedId, day, releaseDate) VALUES ($1, $2, 0)', feedId, day);
 		res.sendStatus(200);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -466,19 +466,19 @@ app.post('/api/feed/:feedId/release/latest', async (req, res) => {
 	const feedId = req.params.feedId;
 	try {
 		// Récupère la release la plus récente
-		const latest = await getSQL('SELECT id, day, isEmpty FROM releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1', feedId);
+		const latest = await getSQL('SELECT id, day, isEmpty FROM crushDrop_releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1', feedId);
 		if (!latest) return res.status(404).json({ error: 'No release found' });
 		if (latest.isEmpty) return res.status(400).json({ error: 'Cannot release an empty release' });
 		// Vérifie que tous les messages sont validés
-		const notValidated = await getSQL('SELECT COUNT(*) as nb FROM messages WHERE releaseId = $1 AND validated = 0', latest.id);
+		const notValidated = await getSQL('SELECT COUNT(*) as nb FROM crushDrop_messages WHERE releaseId = $1 AND validated = 0', latest.id);
 		if (notValidated.nb > 0) return res.status(400).json({ error: 'All messages must be validated' });
 		// Met à jour releaseDate
-		await runSQL('UPDATE releases SET releaseDate = $1 WHERE id = $2', Date.now(), latest.id);
+		await runSQL('UPDATE crushDrop_releases SET releaseDate = $1 WHERE id = $2', Date.now(), latest.id);
 		// Crée une nouvelle release (day+1, releaseDate=0, isEmpty=1)
-		await runSQL('INSERT INTO releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, 1)', feedId, latest.day + 1);
+		await runSQL('INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, 1)', feedId, latest.day + 1);
 		// Met à jour msgCount
-		const msgCountRow = await getSQL('SELECT COUNT(m.id) as count FROM messages m JOIN releases r ON m.releaseId = r.id WHERE r.feedId = $1 AND m.validated = 1', feedId);
-		await runSQL('UPDATE feeds SET msgCount = $1 WHERE id = $2', msgCountRow.count, feedId);
+		const msgCountRow = await getSQL('SELECT COUNT(m.id) as count FROM crushDrop_messages m JOIN crushDrop_releases r ON m.releaseId = r.id WHERE r.feedId = $1 AND m.validated = 1', feedId);
+		await runSQL('UPDATE crushDrop_feeds SET msgCount = $1 WHERE id = $2', msgCountRow.count, feedId);
 		// Rafraîchit les caches
 		await refreshPopularFeeds();
 		await refreshRecentFeeds();
@@ -494,7 +494,7 @@ app.get('/auth/api/feed/:feedId/latestRelease', async (req, res) => {
 	try {
 		// 1. Récupère le dernier release non publié pour ce feed
 		const releaseResult = await pool.query(
-			`SELECT * FROM releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1`,
+			`SELECT * FROM crushDrop_releases WHERE feedId = $1 AND releaseDate = 0 ORDER BY day DESC LIMIT 1`,
 			[feedId]
 		);
 
@@ -504,7 +504,7 @@ app.get('/auth/api/feed/:feedId/latestRelease', async (req, res) => {
 
 		// 2. Récupère les messages du release
 		const messagesResult = await pool.query(
-			`SELECT * FROM messages WHERE releaseId = $1 ORDER BY createdAt ASC`,
+			`SELECT * FROM crushDrop_messages WHERE releaseId = $1 ORDER BY createdAt ASC`,
 			[rel.id]
 		);
 
