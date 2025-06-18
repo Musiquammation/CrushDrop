@@ -523,7 +523,7 @@ app.get('/auth/api/feed/:feedId/latestRelease', async (req, res) => {
 app.get('/api/messages/recent', async (req, res) => {
 	try {
 		const messagesResult = await pool.query(
-			`SELECT m.*, r.feedId FROM messages m JOIN releases r ON m.releaseId = r.id ORDER BY m.createdAt DESC LIMIT 20`
+			`SELECT m.*, r.feedId FROM crushDrop_messages m JOIN crushDrop_releases r ON m.releaseId = r.id ORDER BY m.createdAt DESC LIMIT 20`
 		);
 		res.json(messagesResult.rows);
 	} catch (err) {
@@ -535,7 +535,7 @@ app.get('/api/messages/recent', async (req, res) => {
 app.get('/auth/api/followedFeeds', async (req, res) => {
 	try {
 		const feedsResult = await pool.query(
-			`SELECT feeds.* FROM feeds JOIN userFeeds ON feeds.id = userFeeds.feedId WHERE userFeeds.userId = $1`,
+			`SELECT crushDrop_feeds.* FROM crushDrop_feeds JOIN crushDrop_userFeeds ON crushDrop_feeds.id = crushDrop_userFeeds.feedId WHERE crushDrop_userFeeds.userId = $1`,
 			[req.session.userId]
 		);
 		res.json(feedsResult.rows);
@@ -550,7 +550,7 @@ app.post('/auth/api/followFeed', async (req, res) => {
 	if (!feedId) return res.status(400).json({ error: 'Missing feedId' });
 	try {
 		await runSQL(
-			'INSERT OR IGNORE INTO userFeeds (userId, feedId) VALUES ($1, $2)',
+			'INSERT OR IGNORE INTO crushDrop_userFeeds (userId, feedId) VALUES ($1, $2)',
 			req.session.userId, feedId
 		);
 		res.sendStatus(200);
@@ -565,7 +565,7 @@ app.delete('/auth/api/unfollowFeed', async (req, res) => {
 	if (!feedId) return res.status(400).json({ error: 'Missing feedId' });
 	try {
 		await runSQL(
-			'DELETE FROM userFeeds WHERE userId = $1 AND feedId = $2',
+			'DELETE FROM crushDrop_userFeeds WHERE userId = $1 AND feedId = $2',
 			req.session.userId, feedId
 		);
 		res.sendStatus(200);
@@ -589,7 +589,7 @@ app.get('/api/feeds/all', async (req, res) => {
     try {
         const search = (req.query.search || '').toLowerCase();
         const limit = Math.min(parseInt(req.query.limit) || 100, 200); // limite de sécurité
-        const feedsResult = await pool.query('SELECT * FROM feeds');
+        const feedsResult = await pool.query('SELECT * FROM crushDrop_feeds');
         const feeds = feedsResult.rows;
         // Filtrage côté serveur si un terme de recherche est fourni
         const filtered = search ? feeds.filter(f => f.name.toLowerCase().includes(search) || f.id.toLowerCase().includes(search)) : feeds;
@@ -607,7 +607,7 @@ app.post('/auth/api/message/comment', async (req, res) => {
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
         const createdAt = Date.now();
         await runSQL(
-            'INSERT INTO comments (messageId, userId, content, createdAt) VALUES ($1, $2, $3, $4)',
+            'INSERT INTO crushDrop_comments (messageId, userId, content, createdAt) VALUES ($1, $2, $3, $4)',
             msgId, userId, content, createdAt
         );
         res.sendStatus(200);
@@ -628,12 +628,12 @@ let popularFeedsCache = [];
 let recentFeedsCache = [];
 
 async function refreshPopularFeeds() {
-	const feedsResult = await pool.query(`SELECT * FROM feeds ORDER BY msgCount DESC, creationDate DESC LIMIT $1`, [FEED_BEST_NUM]);
+	const feedsResult = await pool.query(`SELECT * FROM crushDrop_feeds ORDER BY msgCount DESC, creationDate DESC LIMIT $1`, [FEED_BEST_NUM]);
 	popularFeedsCache = feedsResult.rows;
 }
 
 async function refreshRecentFeeds() {
-	const feedsResult = await pool.query(`SELECT * FROM feeds ORDER BY creationDate DESC LIMIT $1`, [FEED_BEST_NUM]);
+	const feedsResult = await pool.query(`SELECT * FROM crushDrop_feeds ORDER BY creationDate DESC LIMIT $1`, [FEED_BEST_NUM]);
 	recentFeedsCache = feedsResult.rows;
 }
 
