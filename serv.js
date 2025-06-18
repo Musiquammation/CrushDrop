@@ -409,7 +409,7 @@ app.post('/auth/api/message/:msgId/validate', async (req, res) => {
 	try {
 		const rel = await getSQL('SELECT r.releaseDate FROM crushDrop_releases r JOIN crushDrop_messages m ON m.releaseId = r.id WHERE m.id = $1', msgId);
 		if (rel && rel.releaseDate && rel.releaseDate > 0) return res.status(403).json({ error: 'Cannot modify a released message' });
-		await runSQL('UPDATE crushDrop_messages SET validated = $1 WHERE id = $2', validated ? 1 : 0, msgId);
+		await runSQL('UPDATE crushDrop_messages SET validated = $1 WHERE id = $2', validated ? true : false, msgId);
 		res.sendStatus(200);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
@@ -472,14 +472,14 @@ app.post('/api/feed/:feedId/release/latest', async (req, res) => {
 		if (!latest) return res.status(404).json({ error: 'No release found' });
 		if (latest.isEmpty) return res.status(400).json({ error: 'Cannot release an empty release' });
 		// Vérifie que tous les messages sont validés
-		const notValidated = await getSQL('SELECT COUNT(*) as nb FROM crushDrop_messages WHERE releaseId = $1 AND validated = 0', latest.id);
+		const notValidated = await getSQL('SELECT COUNT(*) as nb FROM crushDrop_messages WHERE releaseId = $1 AND validated = FALSE', latest.id);
 		if (notValidated.nb > 0) return res.status(400).json({ error: 'All messages must be validated' });
 		// Met à jour releaseDate
 		await runSQL('UPDATE crushDrop_releases SET releaseDate = $1 WHERE id = $2', Date.now(), latest.id);
 		// Crée une nouvelle release (day+1, releaseDate=0, isEmpty=1)
 		await runSQL('INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, TRUE)', feedId, latest.day + 1);
 		// Met à jour msgCount
-		const msgCountRow = await getSQL('SELECT COUNT(m.id) as count FROM crushDrop_messages m JOIN crushDrop_releases r ON m.releaseId = r.id WHERE r.feedId = $1 AND m.validated = 1', feedId);
+		const msgCountRow = await getSQL('SELECT COUNT(m.id) as count FROM crushDrop_messages m JOIN crushDrop_releases r ON m.releaseId = r.id WHERE r.feedId = $1 AND m.validated = TRUE', feedId);
 		await runSQL('UPDATE crushDrop_feeds SET msgCount = $1 WHERE id = $2', msgCountRow.count, feedId);
 		// Rafraîchit les caches
 		await refreshPopularFeeds();
