@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Crush drop</title>
+	<link rel="stylesheet" href="/style.css">
+	<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+	<h1 id="feedTitle">Feed...</h1>
+	<div id="postMessageContainer">
+		<input id="postMessageInput" type="text" placeholder="Connect to post a message..." disabled class="input-disconnected" />
+		<button id="postMessageBtn" disabled>Post</button>
+	</div>
+	<div id="postMessageDiv">
+		<button id="adminBtn" class="hidden">Admin pannel</button>
+		<div id="followBtnContainer">
+			<button id="shareBtn">Share</button>
+		</div>
+   </div>
+
+	<div id="feedContainer"></div>
+	<script src="app.js"></script>
+</body>
+</html>

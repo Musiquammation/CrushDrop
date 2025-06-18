@@ -1,0 +1,184 @@
+body {
+	--msgWidth: max(70vw, 300px);
+}
+
+.input-connected {
+  background: white;
+  color: black;
+  cursor: text;
+}
+
+.input-disconnected {
+  background: #eee;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.hidden {
+  display: none;
+}
+
+
+input[type="text"] {
+  max-width: 30vw;
+}
+
+#postMessageContainer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0; /* ✅ remplace width: 100% */
+  display: flex;
+  justify-content: space-between;
+  /* gap: 1rem; */
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  padding: 1rem;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+}
+
+
+#postMessageInput {
+	flex: 1;
+	padding: 0.75rem 1rem;
+	border: none;
+	border-radius: 10px;
+	font-size: 1rem;
+	background: #fff;
+	outline: none;
+  	width: 85%;
+	max-width: 80vw;
+}
+
+#postMessageBtn {
+	padding: 0;
+	background: #e52e71;
+	color: #fff;
+	border: none;
+	border-radius: 10px;
+	font-weight: bold;
+	cursor: pointer;
+	transition: background 0.3s;
+	width: 15%;
+}
+
+#postMessageBtn:hover {
+	background: #ff8a00;
+}
+
+/* Swipe messages horizontally */
+#feedContainer {
+	overflow-x: hidden;
+	padding-left: 0;
+	padding-right: 0;
+}
+.release {
+	overflow-x: auto;
+	white-space: nowrap;
+	scroll-snap-type: x mandatory;
+	display: flex;
+	flex-direction: row;
+	gap: 1rem;
+	padding: 1rem 0; /* on garde le padding vertical uniquement */
+}
+
+
+
+.release {
+	overflow-x: auto;
+	white-space: nowrap;
+	scroll-snap-type: x mandatory;
+	display: flex;
+	flex-direction: row;
+	gap: 1rem;
+	padding: 1rem;
+	width: var(--msgWidth);
+	box-sizing: border-box;
+}
+
+.release > :first-child {
+   display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(100px);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  min-width: var(--msgWidth);
+  max-width: var(--msgWidth);
+  scroll-snap-align: start;
+  box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  font-weight: bold;
+  font-size: 1rem;
+  text-align: center;
+
+}
+
+.message-block {
+  display: inline-block;
+  white-space: normal;
+  background: #ffffffcc; /* fond blanc semi-transparent */
+  color: #333;
+  border-radius: 12px;
+  padding: 1rem;
+  min-width: var(--msgWidth);
+  max-width: var(--msgWidth);
+  scroll-snap-align: start;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+
+
+
+
+
+.message-content {
+	font-size: 1.5rem;
+	font-weight: bold;
+	margin-bottom: 1rem;
+}
+
+.comment-list {
+  background: #f5f5f5;
+  padding: 0.5rem;
+  border-radius: 8px;
+  height: 40vh;
+  max-height: 40vh;
+  overflow-y: auto;
+  color: #444;
+}
+
+
+.comment-form {
+  padding-top: 0.5rem;
+  border-top: 1px solid #ddd;
+}
+
+.comment-form input {
+	width: 100%;
+	padding: 0.5rem 0.75rem;
+	border-radius: 8px;
+	border: none;
+	outline: none;
+	background: #fff;
+	color: #e52e71;
+}
+
+.comment {
+  background: #ffffffaa;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  color: #222;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

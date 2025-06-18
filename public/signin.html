@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Sign Up</title>
+	<link rel="stylesheet" href="/style.css">
+	<link rel="stylesheet" href="/login_signin.css">
+</head>
+<body>
+	<div class="container">
+		<h2>Sign Up</h2>
+		<form id="signupForm" method="post">
+			<label for="signup-username">Username:</label>
+			<input type="text" id="signup-username" name="username" required>
+			<br>
+			
+			<label for="signup-id">Choose your ID:</label>
+			<input type="text" id="signup-id" name="id" required>
+			<br>
+
+			<label for="signup-email">Email:</label>
+			<input type="email" id="signup-email" name="email" required>
+			<br>
+			
+			<label for="signup-password">Password:</label>
+			<input type="password" id="signup-password" name="password" required>
+			<br>
+						
+			<button type="submit">Sign Up</button>
+		</form>
+		<p>Already have an account? <a href="login">Login</a></p>
+	</div>
+	<script src="index.js"></script>
+	<script>
+		function normalizeId(str) {
+			return str
+				.normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+				.replace(/[^A-Za-z0-9 ]/g, '') // remove special characters
+				.replace(/\s+/g, '_') // spaces to underscores
+				.replace(/_+/g, '_') // multiple underscores to one
+				.replace(/^_+|_+$/g, '') // no underscores at start/end
+				.toLowerCase();
+		}
+
+		const feedNameInput = document.getElementById('signup-username');
+		const feedIdInput = document.getElementById('signup-id');
+
+		feedNameInput.addEventListener('input', () => {
+			feedIdInput.value = normalizeId(feedNameInput.value);
+		});
+
+		document.getElementById('signupForm').addEventListener('submit', async function(e) {
+			e.preventDefault();
+			const id = document.getElementById('signup-id').value;
+			const username = document.getElementById('signup-username').value;
+			const email = document.getElementById('signup-email').value;
+			const password = document.getElementById('signup-password').value;
+			
+			const res = await fetch('/signin', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id, name: username, email, password })
+			});
+
+			const text = await res.text();
+			if(res.ok) {
+				window.location.href = '/feedList';
+			} else {
+				alert(text);
+			}
+		});
+	</script>
+</body>
+</html>

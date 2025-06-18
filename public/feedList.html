@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feed List</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="feedList.css">
+</head>
+<body>
+    <h1>Feeds</h1>
+    <input type="text" id="searchBar" placeholder="Search feeds by name...">
+    <div>
+        <button id="popularBtn" class="active">Most Popular</button>
+        <button id="recentBtn">Most Recent</button>
+        <button id="createFeedBtn">Create feed</button>
+    </div>
+    <h2>Followed Feeds</h2>
+    <div id="followedFeeds" class="prettyScrollbar feedContainer"></div>
+    <h2 id="otherFeedsTitle">Most Popular Feeds</h2>
+    <div id="otherFeeds" class="prettyScrollbar feedContainer"></div>
+    <script src="feedList.js"></script>
+</body>
+</html>

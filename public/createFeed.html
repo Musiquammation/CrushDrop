@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Créer un Feed</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/createFeed.css">
+</head>
+<body>
+<div class="container">
+    <h2>Créer un nouveau Feed</h2>
+    <form id="feedForm">
+        <label for="feedName">Nom du feed</label>
+        <input type="text" id="feedName" required autocomplete="off">
+
+        <label for="feedId">Identifiant (auto)</label>
+        <input type="text" id="feedId" required pattern="^[A-Za-z0-9_]+$" autocomplete="off">
+
+        <button type="submit">Créer le feed</button>
+        <div class="error" id="errorMsg"></div>
+        <div class="success" id="successMsg"></div>
+    </form>
+</div>
+<script src="createFeed.js"></script>
+</body>
+</html>
