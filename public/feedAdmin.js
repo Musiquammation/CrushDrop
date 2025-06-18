@@ -50,11 +50,12 @@ async function loadMessages(feedId) {
 	}
 	// Affiche les messages de la release courante
 	for (const msg of latestRelease.messages) {
+		console.log(msg);
 		const div = document.createElement('div');
 		div.className = 'admin-message';
-		const dateStr = new Date(msg.createdAt).toLocaleString();
+		const dateStr = new Date(+msg.createdat).toLocaleString();
 		div.innerHTML = `
-			<b>${msg.userId}</b> <span>(${dateStr})</span><br>
+			<b>${msg.userid}</b> <span>(${dateStr})</span><br>
 			<span>${msg.content}</span><br>
 			<button class="validate-btn" data-id="${msg.id}">${msg.validated ? 'Unvalidate' : 'Validate'}</button>
 			<button class="delete-btn" data-id="${msg.id}">Delete</button>
