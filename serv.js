@@ -191,11 +191,11 @@ app.post('/login', async (req, res) => {
 	try {
 		const user = await getSQL('SELECT * FROM crushDrop_users WHERE email = $1 OR id = $2', identifier, identifier);
 		if (!user) {
-			return res.status(401).send('Invalid credentials');
+			return res.status(401).send('Invalid id');
 		}
 		const match = await bcrypt.compare(password, user.password);
 		if (!match) {
-			return res.status(401).send('Invalid credentials');
+			return res.status(401).send('Invalid password');
 		}
 		req.session.userId = user.id;
 		req.session.userName = user.name;
@@ -271,10 +271,11 @@ async function pushMessage(content, userId, feedId, time) {
 	);
 	if (!release) {
 		// Si aucune release ouverte, on en crée une nouvelle (cas rare)
+		const last = await getSQL('SELECT MAX(day) as maxDay FROM crushDrop_releases WHERE feedId = $1', feedId);
 		const newDay = last && typeof last.maxDay === 'number' && !isNaN(last.maxDay)
 			? last.maxDay + 1
 			: 0;
-			
+
 		await runSQL(
 			'INSERT INTO crushDrop_releases (feedId, day, releaseDate, isEmpty) VALUES ($1, $2, 0, TRUE)',
 			feedId,
