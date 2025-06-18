@@ -4,10 +4,13 @@ const sqlite3 = require("sqlite3");
 const db = new sqlite3.Database('database.db');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
-const { setTimeout } = require('timers/promises');
+
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
 
 const app = express();
-const PORT = 80;
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -584,10 +587,6 @@ app.post('/auth/api/message/comment', async (req, res) => {
 
 
 
-// Start server
-app.listen(PORT, () => {
-	console.log(`Server running on http://localhost:${PORT}`);
-});
 
 const FEED_BEST_NUM = 50;
 let popularFeedsCache = [];
@@ -617,3 +616,46 @@ async function refreshRecentFeeds() {
 refreshPopularFeeds();
 refreshRecentFeeds();
 
+
+
+
+
+
+// Start server
+let credentials;
+
+try {
+	credentials = {
+		key: fs.readFileSync('/etc/letsencrypt/live/villager-studio.online/privkey.pem', 'utf8'),
+		cert: fs.readFileSync('/etc/letsencrypt/live/villager-studio.online/cert.pem', 'utf8'),
+		ca: fs.readFileSync('/etc/letsencrypt/live/villager-studio.online/chain.pem', 'utf8')
+	};
+	console.log('Loaded SSL certs from default path.');
+} catch (err) {
+	console.warn('Default SSL certs not found. Trying from ./certs...');
+	console.error(err);
+	try {
+		credentials = {
+			key: fs.readFileSync(path.join(__dirname, 'certs', 'privkey.pem'), 'utf8'),
+			cert: fs.readFileSync(path.join(__dirname, 'certs', 'cert.pem'), 'utf8'),
+			ca: fs.readFileSync(path.join(__dirname, 'certs', 'chain.pem'), 'utf8')
+		};
+		console.log('Loaded SSL certs from ./certs');
+	} catch (err2) {
+		console.warn('Failed to load SSL certificates from both locations.');
+		console.error(err2);
+	}
+}
+
+
+if (credentials) {
+	const httpsServ = https.createServer(credentials, app);
+	httpsServ.listen(443, () => {
+		console.log('HTTPS server listening on 443');
+	});
+}
+
+const httpServ = http.createServer(app);
+httpServ.listen(80, () => {
+	console.log('HTTP server listening on 80');
+});
