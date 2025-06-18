@@ -142,7 +142,6 @@ async function initDb() {
 	}
 }
 
-initDb();
 
 
 
@@ -638,8 +637,12 @@ async function refreshRecentFeeds() {
 }
 
 // Initialisation au lancement du serveur
-refreshPopularFeeds();
-refreshRecentFeeds();
+(async () => {
+	await initDb();
+	await refreshPopularFeeds();
+	await refreshRecentFeeds();
+})();
+
 
 
 
