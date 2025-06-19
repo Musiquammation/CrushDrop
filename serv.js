@@ -552,7 +552,7 @@ app.post('/auth/api/followFeed', async (req, res) => {
 	if (!feedId) return res.status(400).json({ error: 'Missing feedId' });
 	try {
 		await runSQL(
-			'INSERT OR IGNORE INTO crushDrop_userFeeds (userId, feedId) VALUES ($1, $2)',
+			'INSERT INTO crushDrop_userFeeds (userId, feedId) VALUES ($1, $2) ON CONFLICT DO NOTHING',
 			req.session.userId, feedId
 		);
 		res.sendStatus(200);
