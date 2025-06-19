@@ -177,8 +177,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 		return;
 	}
 
-	releases = releases.filter(r => r.releaseDate && r.releaseDate > 0);
-	releases.sort((a, b) => b.releaseDate - a.releaseDate);
+
+	
+	releases = releases.filter(r => (+r.releasedate) && (+r.releasedate) > 0);
+	releases.sort((a, b) => (+b.releasedate) - (+a.releasedate));
+
 
 	for (const release of releases) {
 		const releaseDiv = document.createElement('div');
@@ -186,7 +189,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 		// Titre avec la date de la release
 		const title = document.createElement('div');
-		title.textContent = formatDay(new Date(release.releaseDate));
+		title.textContent = formatDay(new Date(+release.releasedate));
 		releaseDiv.appendChild(title);
 
 		// Parcourir tous les messages de la release
@@ -214,7 +217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 					for (const c of comments) {
 						const cDiv = document.createElement('div');
 						cDiv.className = 'comment';
-						const date = new Date(c.createdAt);
+						const date = new Date(+c.createdat);
 						const dateStr = date.toLocaleString('fr-FR', {
 							day: '2-digit', month: '2-digit', year: 'numeric',
 							hour: '2-digit', minute: '2-digit', second: '2-digit'
@@ -256,9 +259,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 						input.value = '';
 						// Rafraîchir les commentaires du message
 						let newReleases = await fetchReleases(feedId);
-						newReleases = newReleases.filter(r => r.releaseDate && r.releaseDate > 0);
-						newReleases.sort((a, b) => b.releaseDate - a.releaseDate);
-						const newRelease = newReleases.find(r => r.releaseDate === release.releaseDate);
+						newReleases = newReleases.filter(r => +r.releasedate && +r.releasedate > 0);
+						newReleases.sort((a, b) => (+b.releasedate) - (+a.releasedate));
+						const newRelease = newReleases.find(r => +r.releasedate === +release.releasedate);
 						if (newRelease) {
 							const newMsg = newRelease.messages.find(m => m.id === msg.id);
 							if (newMsg) {
